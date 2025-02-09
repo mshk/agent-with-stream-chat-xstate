@@ -41,21 +41,12 @@ export function ChatComponent({ apiKey, userId, token }: ChatComponentProps) {
 
   // Stream ChatのWebhookを設定するのは面倒なので、
   const customSubmitHandler = async (message: any) => {
+    console.log('customSubmitHandler', message);
 
-    if (!message?.channel?.id) {
-      return;
-    }
 
-    const channel = chatClient.channel('messaging', message?.channel?.id, {
-      name: 'Example Channel',
-      members: [userId],
-    });
+    await channel?.sendMessage(message);
 
-    if (!channel) {
-      return;
-    }
-  
-    await channel.sendMessage(message);
+    console.log('sendMessage', message);
 
     fetch(`/api/webhook/agent?channel_id=${channel.id}`, {
       method: 'POST'
