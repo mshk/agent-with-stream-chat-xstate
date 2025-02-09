@@ -1,4 +1,4 @@
-import { json } from "@remix-run/node";
+import { TypedResponse } from "@remix-run/node";
 import { StreamChat } from 'stream-chat';
 import type { ActionFunctionArgs } from "@remix-run/node";
 
@@ -7,9 +7,9 @@ const serverClient = StreamChat.getInstance(
   process.env.STREAM_API_SECRET!
 );
 
-export async function action({ request }: ActionFunctionArgs) {
+export async function action({ request }: ActionFunctionArgs): Promise<TypedResponse> {
   if (request.method !== "POST") {
-    return json({ error: "Method not allowed" }, { status: 405 });
+    return Response.json({ error: "Method not allowed" }, { status: 405 });
   }
 
   const { channelId, userId } = await request.json();
@@ -20,8 +20,8 @@ export async function action({ request }: ActionFunctionArgs) {
     });
     
     await channel.create();
-    return json({ channel });
+    return Response.json({ channel });
   } catch (error) {
-    return json({ error: 'Failed to create channel' }, { status: 500 });
+    return Response.json({ error: 'Failed to create channel' }, { status: 500 });
   }
 }

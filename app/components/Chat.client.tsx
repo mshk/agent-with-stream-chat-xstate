@@ -1,23 +1,23 @@
-import { StreamChat } from 'stream-chat';
+import { Channel as StreamChannel, StreamChat } from 'stream-chat';
+
 import {
   Chat,
   Channel,
   ChannelHeader,
   MessageList,
   MessageInput,
-  Thread,
   Window,
 } from 'stream-chat-react';
-
+import { useState, useEffect } from 'react';
 type ChatComponentProps = {
   apiKey: string;
   userId: string;
   token: string;
 };
 
-
 export function ChatComponent({ apiKey, userId, token }: ChatComponentProps) {
   const chatClient = StreamChat.getInstance(apiKey);
+  const [channel, setChannel] = useState<StreamChannel | null>(null);
   
   if (!chatClient.userID) {
     chatClient.connectUser(
@@ -30,10 +30,40 @@ export function ChatComponent({ apiKey, userId, token }: ChatComponentProps) {
     );
   }
 
-  const channel = chatClient.channel('messaging', 'example-channel', {
-    name: 'Example Channel',
-    members: [userId],
-  });
+  useEffect(() => {
+    const currentChannel = chatClient.channel('messaging', 'example-channel', {
+      name: 'Example Channel',
+      members: [userId],
+    });
+    setChannel(currentChannel);
+  }, [chatClient, userId]);
+
+
+  // Stream ChatのWebhookを設定するのは面倒なので、
+  const customSubmitHandler = async (message: any) => {
+
+    if (!message?.channel?.id) {
+      return;
+    }
+
+    const channel = chatClient.channel('messaging', message?.channel?.id, {
+      name: 'Example Channel',
+      members: [userId],
+    });
+
+    if (!channel) {
+      return;
+    }
+  
+    await channel.sendMessage(message);
+
+    fetch(`/api/webhook/agent?channel_id=${channel.id}`, {
+      method: 'POST'
+    })
+      .then(res => res.json())
+      .then(data => console.log('Agent API response:', data))
+      .catch(err => console.error('Error calling Agent API:', err));
+  };
 
   return (
     <div style={{ height: '100vh' }}>
@@ -42,9 +72,8 @@ export function ChatComponent({ apiKey, userId, token }: ChatComponentProps) {
           <Window>
             <ChannelHeader />
             <MessageList />
-            <MessageInput />
+            <MessageInput overrideSubmitHandler={customSubmitHandler} />
           </Window>
-          <Thread />
         </Channel>
       </Chat>
     </div>
